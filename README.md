@@ -252,7 +252,6 @@ Common GND ───────┬─→ Pico pins 3, 8, 13, 18, 23, 28, 33, 38
 | From | To | Purpose |
 |---|---|---|
 | 65C02 pin 34 (RWB) | RAM pin 27 (WE#) | Write enable to RAM |
-| 65C02 pin 34 (RWB) | Pico pin 36 (GP23) | Bus monitor read/write detection |
 | Pico pin 32 (GP27) | 65C02 pin 40 (RESB) | Reset control |
 | Pico pin 34 (GP28) | 65C02 pin 37 (PHI2) | Fixed clock at 0.2 Hz (5s per cycle) |
 
