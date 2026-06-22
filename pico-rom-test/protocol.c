@@ -86,7 +86,7 @@ bool proto_read_frame_payload(uint8_t *buf, size_t buf_size, size_t *out_len) {
     if (!read_payload_until_eot(buf, buf_size, out_len, 5000)) {
         return false;
     }
-    return wait_host_ack(3000);
+    return proto_send_ack();
 }
 
 bool proto_send_frame(const uint8_t *payload, size_t len) {
@@ -140,5 +140,5 @@ bool proto_read_binary_frame(uint8_t *buf, size_t expected_len) {
     if (!proto_read_byte(&b, 3000) || b != CTRL_EOT) {
         return false;
     }
-    return wait_host_ack(3000);
+    return proto_send_ack();
 }

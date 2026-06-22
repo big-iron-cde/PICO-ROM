@@ -13,9 +13,10 @@ def main():
     rom[0x0005] = 0x8D   # STA $4000
     rom[0x0006] = 0x00   # low byte
     rom[0x0007] = 0x40   # high byte
-    rom[0x0008] = 0x4C   # JMP $8000
-    rom[0x0009] = 0x00
-    rom[0x000A] = 0x80
+    # rom[0x0008] = 0x4C   # JMP $8000
+    # rom[0x0009] = 0x00
+    # rom[0x000A] = 0x80
+    rom[0x0008] = 0xDB   # STP — stops read_until_stp capture
 
     # Reset vector at $FFFC-$FFFD (file offset $7FFC)
     rom[0x7FFC] = 0x00   # low byte

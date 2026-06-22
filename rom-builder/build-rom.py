@@ -50,7 +50,7 @@ def main():
     pc = write_bytes(rom, pc, 0x8D, 0x00, 0x40)   # STA $4000
     pc = write_bytes(rom, pc, 0x69, 0x0F)         # ADC #$0F
     pc = write_bytes(rom, pc, 0x8D, 0x00, 0x40)   # STA $4000
-    pc = write_bytes(rom, pc, 0x4C, 0x00, 0x80)   # JMP $8000
+    pc = write_bytes(rom, pc, 0xDB)   # STP — stops read_until_stp capture
 
     # ─── Reset / IRQ vectors at the top of ROM ───────────────────────────
     # CPU $FFFC-$FFFD = reset vector (where the CPU jumps on power-up)

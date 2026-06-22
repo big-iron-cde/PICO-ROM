@@ -30,6 +30,8 @@ NACK = 0x15
 DEFAULT_PORT = "/dev/ttyACM0"
 DEFAULT_BAUD = 115200
 ROM_SIZE = 0x8000
+# Must exceed one PHI2 period (5 s at default firmware 0.2 Hz) plus USB jitter.
+READ_FRAME_TIMEOUT = 12.0
 
 
 @dataclass
@@ -87,11 +89,21 @@ class HardwareAPI:
                 return b[0]
         raise TimeoutError("timed out waiting for byte")
 
+    def _sync_to_byte(self, acceptable: set[int], timeout: float = 3.0) -> int:
+        """Read until one of *acceptable* bytes appears; discard stray data."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            b = self.ser.read(1)
+            if b and b[0] in acceptable:
+                return b[0]
+        labels = ", ".join(f"0x{v:02X}" for v in sorted(acceptable))
+        raise TimeoutError(f"timed out waiting for {labels}")
+
     def _write_byte(self, value: int) -> None:
         self.ser.write(bytes([value]))
 
-    def _read_frame_payload(self) -> bytes:
-        b = self._read_byte()
+    def _read_frame_payload(self, timeout: float = 3.0) -> bytes:
+        b = self._sync_to_byte({STX}, timeout=timeout)
         if b != STX:
             raise ProtocolError(f"expected STX after ENQ, got 0x{b:02X}")
 
@@ -113,12 +125,12 @@ class HardwareAPI:
     def _send_frame(self, payload: bytes) -> None:
         self._write_byte(ENQ)
         self._write_byte(STX)
-        ack = self._read_byte()
+        ack = self._sync_to_byte({ACK, NACK})
         if ack != ACK:
             raise ProtocolError(f"expected ACK from device, got 0x{ack:02X}")
         self.ser.write(payload)
         self._write_byte(EOT)
-        resp = self._read_byte()
+        resp = self._sync_to_byte({ACK, NACK})
         if resp != ACK:
             raise ProtocolError(f"device NACK after EOT (0x{resp:02X})")
 
@@ -126,17 +138,13 @@ class HardwareAPI:
         payload = json.dumps(command, separators=(",", ":")).encode()
         self._send_frame(payload)
 
-        b = self._read_byte()
-        if b != ENQ:
-            raise ProtocolError(f"expected ENQ for response, got 0x{b:02X}")
+        self._sync_to_byte({ENQ})
         raw = self._read_frame_payload()
         return json.loads(raw.decode())
 
-    def _recv_json_frame(self) -> dict[str, Any]:
-        b = self._read_byte()
-        if b != ENQ:
-            raise ProtocolError(f"expected ENQ, got 0x{b:02X}")
-        raw = self._read_frame_payload()
+    def _recv_json_frame(self, timeout: float = 3.0) -> dict[str, Any]:
+        self._sync_to_byte({ENQ}, timeout=timeout)
+        raw = self._read_frame_payload(timeout=timeout)
         return json.loads(raw.decode())
 
     def reset(self, assert_reset: bool = True) -> dict[str, Any]:
@@ -157,13 +165,24 @@ class HardwareAPI:
             raise ProtocolError(f"upload_rom rejected: {pending}")
 
         self._send_frame(data)
-        b = self._read_byte()
-        if b != ENQ:
-            raise ProtocolError(f"expected ENQ for upload result, got 0x{b:02X}")
+        self._sync_to_byte({ENQ})
         raw = self._read_frame_payload()
         return json.loads(raw.decode())
 
-    def read_until_stp(self, max_cycles: int = 10000) -> ReadResult:
+    def _drain_input(self, settle_s: float = 0.3) -> None:
+        """Discard stray bytes (e.g. ASCII monitor lines) before framed I/O."""
+        time.sleep(settle_s)
+        self.ser.reset_input_buffer()
+
+    def read_until_stp(
+        self,
+        max_cycles: int = 10000,
+        frame_timeout: float = READ_FRAME_TIMEOUT,
+    ) -> ReadResult:
+        # ASCII monitor output corrupts framing; state persists on the Pico.
+        self.monitor(enable=False)
+        self._drain_input()
+
         ack = self._exchange_json(
             {"cmd": "read", "until": "stp", "max_cycles": max_cycles}
         )
@@ -174,7 +193,7 @@ class HardwareAPI:
         result = ReadResult(ok=False, reason="unknown")
 
         while True:
-            msg = self._recv_json_frame()
+            msg = self._recv_json_frame(timeout=frame_timeout)
             if msg.get("type") == "cycle":
                 cycles.append(
                     CycleRecord(

@@ -112,6 +112,7 @@ static void cmd_read(const char *json) {
     }
     read_cycle_count = 0;
     read_active = true;
+    monitor_enabled = false;  /* ASCII table corrupts framed cycle stream */
 
     char resp[128];
     snprintf(resp, sizeof(resp),
@@ -153,6 +154,11 @@ void hardware_api_handle_enq(void) {
         return;
     }
     buf[len] = '\0';
+
+    /* Abort a stale read capture when any other command arrives. */
+    if (!json_has_cmd((char *)buf, "read")) {
+        read_active = false;
+    }
 
     if (json_has_cmd((char *)buf, "reset")) {
         cmd_reset((char *)buf);

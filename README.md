@@ -302,7 +302,15 @@ Working code lives in **`pico-rom-test/`** (Pico firmware) and **`rom-builder/`*
 5. **Built-in demo program** — ships with a tiny loop at $8000 that writes `$05` then `$14` (20 decimal) to `$4000`.
 6. **Hardware API** — structured host control over USB-CDC serial (see below). Replaces the old text `loadbin` command.
 
-Flash **`pico-rom-test/build/pico-rom-test.uf2`** to the Pico (BOOTSEL + drag, or `picotool load`).
+Flash **`pico-rom-test/build/pico-rom-test.uf2`** to the Pico:
+
+- **BOOTSEL:** hold BOOTSEL, plug in USB, drag the `.uf2` onto the mass-storage drive.
+- **picotool (device already running firmware):**
+  ```bash
+  cd pico-rom-test/build
+  picotool load -f pico-rom-test.uf2
+  ```
+  Use `-f` when the Pico is connected as `/dev/ttyACM0` (not in BOOTSEL).
 
 Build firmware:
 
@@ -321,16 +329,16 @@ The host talks to the Pico over USB-CDC at **115200 baud** using a framed serial
 
 #### Framing
 
-Every transaction follows the same byte sequence:
+Every transaction follows the same byte sequence. The **receiver** always sends ACK (or NACK on error) after EOT — whether the host or the Pico is sending:
 
 ```
 Sender                         Receiver
   ENQ (0x05)          ────────►
   STX (0x02)          ────────►
-                      ◄────────  ACK (0x06)
+                      ◄────────  ACK (0x06)     ← receiver ready for payload
   payload bytes       ────────►
   EOT (0x04)          ────────►
-                      ◄────────  ACK (0x06) or NACK (0x15)
+                      ◄────────  ACK (0x06) or NACK (0x15)   ← receiver accepted/rejected
 ```
 
 | Byte | Value | Meaning |
@@ -339,9 +347,11 @@ Sender                         Receiver
 | STX  | `0x02` | Start payload |
 | ACK  | `0x06` | Ready / accepted |
 | EOT  | `0x04` | End payload |
-| NACK | `0x15` | Rejected |
+| NACK | `0x15` | Rejected (bad frame, unknown command, or payload too large) |
 
 **Important:** do not open a plain serial monitor on `/dev/ttyACM0` while using the Hardware API — unstructured output will corrupt framing. Only one process may hold the port at a time.
+
+The **`monitor`** command also prints unstructured ASCII (`|`-delimited table rows). That state **persists on the Pico** until you send `{"cmd":"monitor","enable":false}` or start a **`read`** capture (firmware auto-disables it). Do not leave monitor enabled before running `upload-rom.py`, `read_until_stp()`, or other scripted API calls.
 
 #### Commands
 
@@ -379,22 +389,31 @@ Final frame:
 {"type":"done","ok":true,"reason":"stp","cycles":14,"addr":"800D"}
 ```
 
-To use this in automated tests, end your ROM with a `STP` instruction.
+To use this in automated tests, end your ROM with a **`STP` (`0xDB`)** instruction (not `BRK` — that opcode is `0x00`).
+
+At the default **0.2 Hz** clock, cycle frames arrive about **once every 5 seconds**. The host waits up to **12 s** per frame (`READ_FRAME_TIMEOUT` in `hardware_api.py`). A full capture from reset through STP typically takes **10–120 s** depending on program length. Increase `frame_timeout` in `read_until_stp()` if you slow the clock further.
+
+Starting a **`read`** automatically disables the ASCII monitor on the Pico. The host (`read_until_stp()` / `upload-rom.py --read-stp`) also sends `monitor enable:false` and drains stray serial bytes before capture.
 
 **request_addr** — Returns the last address sampled on the bus (updated every PHI2 rising edge).
 
-**monitor** — Toggles the human-readable ASCII bus table (disabled by default so it does not interfere with framed protocol traffic):
+**monitor** — Toggles the human-readable ASCII bus table (disabled by default). **Mutually exclusive with scripted capture:** table rows contain `|` (`0x7C`) and other bytes that collide with framed protocol traffic. After interactive use, disable before upload/read:
+
+```python
+api.monitor(enable=False)
+```
+
+Use **`read`** (JSON cycle stream) for automated tests; reserve **`monitor`** for manual breadboard observation. Example output:
 
 ```
-+----+------+---------+----+-------+
-| NO | DATA | ADDRESS | RW | CLOCK |
-+----+------+---------+----+-------+
 | 01 |  18  |  8000   |  0 |  0.2  |
 ```
 
 ---
 
 ### Host-side workflow
+
+Host tools live in **`rom-builder/`** at the **repo root** (not under `pico-rom-test/build/`).
 
 Install the Python dependency once:
 
@@ -405,11 +424,15 @@ pip install --user pyserial
 Build and upload a ROM:
 
 ```bash
-cd rom-builder
-python3 main.py                          # → bin/rom.bin
+cd rom-builder   # from repo root: PICO-ROM/rom-builder
+python3 build-rom.py                     # → bin/rom.bin  (preferred)
 python3 upload-rom.py                    # upload via Hardware API
-python3 upload-rom.py --read-stp         # upload, then capture bus until STP
+python3 upload-rom.py --read-stp         # upload, disable monitor, reset, capture until STP
 ```
+
+`build-rom.py` is the maintained ROM builder (CPU-address helpers, STP terminator for automated capture). `main.py` is a minimal legacy example that also works.
+
+The host API discards stray serial bytes (monitor lines, echoed ACKs) while resyncing to frame boundaries.
 
 Use the API from Python (for CI or custom scripts):
 
@@ -421,16 +444,21 @@ with HardwareAPI("/dev/ttyACM0") as api:
     api.reset(assert_reset=True)         # hold CPU in reset
     api.reset(assert_reset=False)        # release
     result = api.upload_rom_json(open("bin/rom.bin", "rb").read())
-    capture = api.read_until_stp(max_cycles=500)
+    api.monitor(enable=False)              # required if monitor was used earlier
+    api.reset(assert_reset=True)         # restart from reset vector before capture
+    api.reset(assert_reset=False)
+    capture = api.read_until_stp(max_cycles=500)  # also disables monitor; 12 s/frame
     print(capture.reason, len(capture.cycles))
-    api.monitor(enable=True)             # optional ASCII bus table
+    api.monitor(enable=True)             # optional — disable again before upload/read
 ```
+
+`upload-rom.py --read-stp` disables monitor, pulses reset, and captures automatically.
 
 **Note:** `rom_image[]` is lost on Pico power cycle — re-run `upload-rom.py` after each reboot.
 
 ---
 
-### Demo program (in `rom-builder/main.py`)
+### Demo program (in `rom-builder/build-rom.py`)
 
 ```
 $8000: CLC
@@ -438,7 +466,7 @@ $8000: CLC
        STA $4000       ; visible via read / monitor
        ADC #$0F        ; A = 20
        STA $4000
-       JMP $8000
+       STP             ; stops read_until_stp capture (opcode $DB)
 $FFFC: $8000           ; reset vector
 ```
 
@@ -470,13 +498,14 @@ $FFFC: $8000           ; reset vector
      with HardwareAPI() as api:
          api.monitor(enable=True)
          input('Press Enter to stop...')
+         api.monitor(enable=False)   # before upload-rom.py or read capture
      "
      ```
-   - Or capture structured bus data: `python3 upload-rom.py --read-stp` (after building a ROM that ends in `STP`).
+   - Or capture structured bus data: `python3 upload-rom.py --read-stp` (after `python3 build-rom.py`; ROM must end in `STP`).
 4. **Full program test:**
    ```bash
    cd rom-builder
-   python3 main.py
+   python3 build-rom.py
    python3 upload-rom.py
    python3 upload-rom.py --read-stp
    ```
@@ -498,7 +527,11 @@ $FFFC: $8000           ; reset vector
 | RAM reads return garbage (writes seem to work) | HM62256 at 3.3 V out of spec — replace with 3.3 V SRAM for production |
 | Random behavior when touching breadboard | Loose wire or missing decoupling — re-seat connections; 100 nF cap helps |
 | `upload-rom.py`: Device or resource busy | Another program holds `/dev/ttyACM0` — close serial monitors first |
-| `upload-rom.py`: ProtocolError / timeout | Firmware not flashed or wrong port; ensure no plain serial monitor is open |
+| `ProtocolError: expected ACK … got 0x7C` | ASCII **monitor** still enabled — run `api.monitor(enable=False)` or use `--read-stp` (disables it automatically); reflash if firmware is stale |
+| `ProtocolError: device NACK after EOT (0x15)` | Stale or mismatched firmware — rebuild and reflash `pico-rom-test.uf2` (`picotool load -f`) |
+| `ProtocolError` / timeout (other) | Wrong port, no firmware flashed, or a plain serial monitor is open on `/dev/ttyACM0` |
+| `TimeoutError` during `--read-stp` | ROM missing **`STP` (`0xDB`)** at end of program, or clock slower than 12 s/frame — rebuild with `build-rom.py` or raise `frame_timeout` in `read_until_stp()` |
+| `ModuleNotFoundError: hardware_api` | Run host scripts from **`rom-builder/`**, not from `pico-rom-test/build/` |
 | Pico USB disconnects when 65C02 boots | Brownout — 3.3 V supply can't deliver enough current |
 
 ---
@@ -507,10 +540,11 @@ $FFFC: $8000           ; reset vector
 
 **Can:**
 - Run the 65C02 from a Pico-hosted 32 KB ROM image ($8000–$FFFF)
-- Build ROM on a laptop (`rom-builder/main.py`), upload over USB via the Hardware API (`upload-rom.py`, `hardware_api.py`)
+- Build ROM on a laptop (`rom-builder/build-rom.py`), upload over USB via the Hardware API (`upload-rom.py`, `hardware_api.py`)
 - Auto-start clock, ROM, and reset on USB connect — no manual commands needed for the CPU to run
 - Control reset, upload ROM, capture bus cycles (until STP), and query address over framed JSON serial
-- Optional ASCII bus monitor (`monitor` command) or structured JSON capture (`read` command)
+- Structured JSON bus capture (`read` / `read_until_stp`) for automated tests
+- Optional ASCII bus monitor (`monitor` command) for manual observation — disable before scripted upload/read
 - Snoop a virtual print port ($4000) — see CPU stores via `read` or `monitor`
 - Read and write RAM (subject to HM62256 + 3.3 V behavior)
 

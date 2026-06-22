@@ -42,7 +42,12 @@ def upload(port: str, path: Path, read_stp: bool = False) -> None:
         print(json.dumps(result, indent=2))
 
         if read_stp:
-            print("\n>> read until STP")
+            api.monitor(enable=False)
+            api._drain_input()
+            print("\n>> reset (restart CPU from reset vector)")
+            api.reset(assert_reset=True)
+            api.reset(assert_reset=False)
+            print(">> read until STP")
             capture = api.read_until_stp(max_cycles=500)
             print(f"   reason={capture.reason}  cycles={len(capture.cycles)}")
             for cyc in capture.cycles[:20]:
