@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.13)
 # Pico 1 (RP2040).
 set(PICO_BOARD pico CACHE STRING "Board type")
 
-# Use the same SDK import shim that picoprom uses.
-include(${CMAKE_CURRENT_LIST_DIR}/../../picoprom/pico_sdk_import.cmake)
+# Read PICO_SDK_PATH from environment
+include($ENV{PICO_SDK_PATH}\\external\\pico_sdk_import.cmake)
 
 project(pico-rom-test C CXX ASM)
 
@@ -25,6 +25,7 @@ target_link_libraries(pico-rom-test
     hardware_gpio
     hardware_clocks
     hardware_sync
+    pico_cyw43_arch_none
 )
 
 pico_add_extra_outputs(pico-rom-test)
