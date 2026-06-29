@@ -1,9 +1,7 @@
 name: Hello World
 
 on:
-  push:
-    branches:
-      - main
+  [push]
 
 jobs:
   build:
