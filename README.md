@@ -2,9 +2,9 @@
 
 > A Raspberry Pi Pico 2 acts as the **ROM and clock** for a real **W65C02S** CPU on a breadboard — single 3.3 V logic, no EPROM, no oscillator can, no level shifters.
 
-[![Docs](https://github.com/big-iron-cde/PICO-ROM/actions/workflows/docs.yml/badge.svg)](https://big-iron-cde.github.io/PICO-ROM/)
+[![Docs](https://github.com/big-iron-cde/PICO-ROM/actions/workflows/docs.yml/badge.svg)](https://big-iron-cde.github.io/PICO-ROM/docs)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://big-iron-cde.github.io/PICO-ROM/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/big-iron-cde/PICO-ROM/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/big-iron-cde/PICO-ROM/LICENSE)
 
 The Pico holds a 32 KB ROM image in SRAM and serves it to the CPU's address bus in real time, generates the PHI2 clock, and drives RESET. A host PC builds ROM images and talks to the Pico over a framed USB-serial **Hardware API** to upload ROMs and capture bus cycles for automated testing.
 
@@ -12,24 +12,30 @@ The Pico holds a 32 KB ROM image in SRAM and serves it to the CPU's address bus 
 
 ## Table of Contents
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Hardware](#hardware)
-- [Wiring](#wiring)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Hardware API](#hardware-api)
-- [Examples](#examples)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Project Structure](#project-structure)
-- [Documentation Website](#documentation-website)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Authors & Acknowledgements](#authors--acknowledgements)
-- [References](#references)
+- [Pico-as-ROM](#pico-as-rom)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Architecture](#architecture)
+  - [Hardware](#hardware)
+  - [Wiring](#wiring)
+    - [Shared bus (65C02 ↔ Pico ↔ RAM)](#shared-bus-65c02--pico--ram)
+    - [Point-to-point connections](#point-to-point-connections)
+    - [Pull-up resistors (6 × 10 kΩ, all to +3.3 V)](#pull-up-resistors-6--10-kω-all-to-33-v)
+    - [Power](#power)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Hardware API](#hardware-api)
+  - [Examples](#examples)
+  - [Testing](#testing)
+  - [Deployment](#deployment)
+  - [Project Structure](#project-structure)
+  - [Documentation Website](#documentation-website)
+  - [Roadmap](#roadmap)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Authors \& Acknowledgements](#authors--acknowledgements)
+  - [References](#references)
 
 ## Features
 
