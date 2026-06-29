@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
 
 # IMPORTANT: PICO_BOARD must be set BEFORE include(pico_sdk_import.cmake)
-# Pico 1 (RP2040).
-# removed setting because it is set in the CI job
-# set(PICO_BOARD pico CACHE STRING "Board type")
+# Pico 2 on the breadboard build; use "pico" for original RP2040 Pico.
+set(PICO_BOARD pico2 CACHE STRING "Board type")
 
-# Read PICO_SDK_PATH from environment
-include($ENV{PICO_SDK_PATH}\\external\\pico_sdk_import.cmake)
+# Locate SDK via PICO_SDK_PATH, or: cmake -DPICO_SDK_PATH=~/vsarm/pico-sdk ..
+include(${CMAKE_CURRENT_LIST_DIR}/pico_sdk_import.cmake)
 
 project(pico-rom-test C CXX ASM)
 
@@ -19,6 +18,13 @@ add_executable(pico-rom-test
     main.c
     protocol.c
     hardware_api.c
+    json_util.c
+    third_party/cJSON/cJSON.c
+)
+
+target_include_directories(pico-rom-test PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/third_party/cJSON
 )
 
 target_link_libraries(pico-rom-test
