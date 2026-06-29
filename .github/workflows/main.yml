@@ -41,7 +41,7 @@ jobs:
         cd pico-rom-test
         mkdir -p build && cd build
         cmake .. -DPICO_BOARD=${{ matrix.board }}
-        make
+        cmake --build . -j$(nproc)
         cp pico-rom-test.uf2 ../../bin/pico-rom-test-${{ matrix.board }}.uf2
         cd ../
         rm -rf build
