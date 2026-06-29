@@ -311,14 +311,17 @@ Flash **`pico-rom-test/build/pico-rom-test.uf2`** to the Pico:
   ```
   Use `-f` when the Pico is connected as `/dev/ttyACM0` (not in BOOTSEL).
 
-Build firmware:
+Build firmware (requires [pico-sdk](https://github.com/raspberrypi/pico-sdk) and `arm-none-eabi-gcc`):
 
 ```bash
+export PICO_SDK_PATH=~/vsarm/pico-sdk   # or your SDK checkout path
 cd pico-rom-test
 mkdir -p build && cd build
 cmake ..
 make
 ```
+
+Output: `build/pico-rom-test.uf2`. The project bundles `pico_sdk_import.cmake` — no separate `picoprom` repo needed.
 
 ---
 
