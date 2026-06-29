@@ -19,7 +19,10 @@ jobs:
 
     - name: Build for Pico 1
       run: |
-        mkdir -p build && cd build && cmake .. -DPICO_BOARD=pico && make
+        cd pico-rom-test
+        mkdir -p build && cd build
+        cmake .. -DPICO_BOARD=pico
+        make
     env:
       PICO_SDK_PATH: /home/runner/tools/pico-sdk
 # need to add release
