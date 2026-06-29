@@ -23,16 +23,6 @@ jobs:
     - name: Clone repo to ~/tools/pico-sdk
       run: git clone -b master --recurse-submodules https://github.com/raspberrypi/pico-sdk.git /home/runner/tools/pico-sdk
 
-    - name: Debug Pico SDK
-      run: |
-        git -C /home/runner/tools/pico-sdk rev-parse HEAD
-        git -C /home/runner/tools/pico-sdk describe --tags --always
-        find /home/runner/tools/pico-sdk/src/boards -maxdepth 2 -type f | sort
-    - name: Check board files
-      run: |
-        ls -l /home/runner/tools/pico-sdk/src/boards/include/boards
-        find /home/runner/tools/pico-sdk/src/boards -name "pico_2*"
-
     - name: Install ARM cross-compiler
       run: |
         sudo apt-get update

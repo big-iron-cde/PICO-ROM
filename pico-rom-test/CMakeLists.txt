@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 # IMPORTANT: PICO_BOARD must be set BEFORE include(pico_sdk_import.cmake)
 # Pico 1 (RP2040).
-set(PICO_BOARD pico CACHE STRING "Board type")
+# removed setting because it is set in the CI job
+# set(PICO_BOARD pico CACHE STRING "Board type")
 
 # Read PICO_SDK_PATH from environment
 include($ENV{PICO_SDK_PATH}\\external\\pico_sdk_import.cmake)
