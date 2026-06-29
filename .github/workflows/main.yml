@@ -18,5 +18,14 @@ jobs:
         git clone -b master --recurse-submodules https://github.com/raspberrypi/pico-sdk.git
         cd pico-sdk
         git reset --hard 6a7db34
-    - name: 
+    - name: Move
+      run: |
+        echo 'export PICO_SDK_PATH="PATH_TO_YOUR_PICO_SDK"' >> YOUR_PROFILE_FILE
+        source YOUR_PROFILE_FILE
+    - name: Pico 1
+      run: |
+        mkdir -p build && cd build
+        cmake -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/arm-none-eabi-gcc -DCMAKE_CXX_COMPILER:FILEPATH=/usr/bin/arm-none-eabi-g++ --no-warn-unused-cli -S./. -G "Unix Makefiles" ../ && make && cd ..
+        gdb-multiarch build/main.elf -x tests/test.gdb
+
 
