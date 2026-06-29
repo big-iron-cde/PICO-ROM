@@ -21,6 +21,9 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-arm-none-eabi
+    
+    - name: Create bin output folder
+      run: mkdir -p bin
 
     - name: Build for Pico 1
       run: |
@@ -28,6 +31,10 @@ jobs:
         mkdir -p build && cd build
         cmake .. -DPICO_BOARD=pico
         make
+        cp pico-rom-test.uf2 ../../bin/pico-rom-test-pico.uf2
+        cd ../
+        rm -rf build
+    
     env:
       PICO_SDK_PATH: /home/runner/tools/pico-sdk
 # need to add release
