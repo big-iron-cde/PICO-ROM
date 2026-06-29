@@ -4,7 +4,7 @@
 
 [![Docs](https://github.com/big-iron-cde/PICO-ROM/actions/workflows/docs.yml/badge.svg)](https://big-iron-cde.github.io/PICO-ROM/)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://big-iron-cde.github.io/PICO-ROM/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/big-iron-cde/PICO-ROM/blob/main/LICENSE)
 
 The Pico holds a 32 KB ROM image in SRAM and serves it to the CPU's address bus in real time, generates the PHI2 clock, and drives RESET. A host PC builds ROM images and talks to the Pico over a framed USB-serial **Hardware API** to upload ROMs and capture bus cycles for automated testing.
 
@@ -299,7 +299,7 @@ Contributions are welcome. Please open an issue to discuss substantial changes f
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](https://github.com/big-iron-cde/PICO-ROM/blob/main/LICENSE).
 
 ## Authors & Acknowledgements
 

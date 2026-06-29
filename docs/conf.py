@@ -37,8 +37,13 @@ myst_enable_extensions = [
     "colon_fence",
     "deflist",
     "fieldlist",
+    "tasklist",
 ]
 myst_heading_anchors = 3
+
+# Render GitHub-style ```mermaid fenced code blocks (used in README.md) as
+# mermaid diagrams instead of plain code listings.
+myst_fence_as_directive = ["mermaid"]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "_doxygen", "Thumbs.db", ".DS_Store"]
