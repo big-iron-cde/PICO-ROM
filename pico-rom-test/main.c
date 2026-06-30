@@ -221,8 +221,8 @@ int main(void) {
         }
         uint PICO_DEFAULT_LED_PIN = CYW43_WL_GPIO_LED_PIN;
     #elif defined(PICO_DEFAULT_LED_PIN)
-        gpio_init(PICO_DEFAULT_LED_PIN)
-        gpio_set_dir(LED_PIN, GPIO_OUT)
+        gpio_init(PICO_DEFAULT_LED_PIN);
+        gpio_set_dir(LED_PIN, GPIO_OUT);
     #endif
 
     absolute_time_t led_toggle = get_absolute_time();
