@@ -39,7 +39,7 @@ if(PICO_BOARD STREQUAL "pico_w" OR PICO_BOARD STREQUAL "pico2_w")
 endif()
 
 target_link_libraries(pico-rom-test
-    STD_LIBS
+   PRIVATE ${STD_LIBS}
 )
 
 pico_add_extra_outputs(pico-rom-test)
