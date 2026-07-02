@@ -7,14 +7,14 @@ set(PICO_BOARD pico2 CACHE STRING "Board type")
 # Locate SDK via PICO_SDK_PATH, or: cmake -DPICO_SDK_PATH=~/vsarm/pico-sdk ..
 include(${CMAKE_CURRENT_LIST_DIR}/pico_sdk_import.cmake)
 
-project(pico-rom-test C CXX ASM)
+project(piclone C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_executable(pico-rom-test
+add_executable(piclone
     main.c
     protocol.c
     hardware_api.c
@@ -22,7 +22,7 @@ add_executable(pico-rom-test
     third_party/cJSON/cJSON.c
 )
 
-target_include_directories(pico-rom-test PRIVATE
+target_include_directories(piclone PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/third_party/cJSON
 )
@@ -38,11 +38,11 @@ if(PICO_BOARD STREQUAL "pico_w" OR PICO_BOARD STREQUAL "pico2_w")
     list(APPEND STD_LIBS pico_cyw43_arch_none)
 endif()
 
-target_link_libraries(pico-rom-test
+target_link_libraries(piclone
    PRIVATE ${STD_LIBS}
 )
 
-pico_add_extra_outputs(pico-rom-test)
+pico_add_extra_outputs(piclone)
 
-pico_enable_stdio_usb(pico-rom-test 1)
-pico_enable_stdio_uart(pico-rom-test 0)
+pico_enable_stdio_usb(piclone 1)
+pico_enable_stdio_uart(piclone 0)
